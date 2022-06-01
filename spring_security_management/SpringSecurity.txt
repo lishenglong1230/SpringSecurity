@@ -1,0 +1,125 @@
+authentication 认证
+access-control 授权
+
+用户权限多对多 用户角色多对多
+SQLyog 
+
+adminlTE
+权限管理 根据系统弄设置的安全规则或者安全策略，用户可以访问而且只能访问自己被授权的资源 ----授权
+前提是需要用户和密码  ------	认证 包含角色信息
+
+用户 角色 权限(权限表 动态展示菜单)
+maven有传递依赖的特性
+过滤器链
+spring-security.xml
+/** *子目录 *子目录以及其所带的参数
+{noop}不加密认证
+不想spring-security被外界访问 "加载到父容器当中" 因为外界只能访问子容器 通过子容器再访问到父容器
+在项目启动的时候就加载到security配置文件了
+如果没有认证security自动提供登录页面 /login 并且携带
+_csrf 跨域 跨站伪造请求 获取当前浏览器所有请求信息包括用户名密码认证信息 恶意登录 ---- CsrfFilter处理
+AccessDeniedException 权限不足异常 
+哪里那么多的过滤器？
+DelegatingFilterProxy initDelegate
+FilterChainProxy封装了15个过滤器     <SecurityFilterChain>   doFilterInternal
+idea double shift 方法
+只要是过滤器就找dofilter
+
+/login 表单中参数 username password 也可以自定义
+让认证页面可以匿名访问，但是依旧经过后续的过滤器 因为后续还要判断
+403访问权限不足
+css等释放静态
+
+csrf对于删改查起作用 想要访问成功但是起作用就要获取token 引入taglib包 默认/logout也不能使用get方式必须使用post也需要token
+
+认证流程
+UsernamePasswordAuthenticationFilter 默认属性名username password /login post
+    authenticate ctrl+H 看到所有的实现类
+    将认证封装到List当中 AuthenticationProvider
+        retrieveUser：security有自己的用户对象UserDetails
+如果想使用自己数据库进行认证必须实现UserDetailsService接口 将认证配置改为自己的类名
+Encoding 加密每次不一样 MD5加密一样
+加盐加密
+
+手动开启remember me
+RememberMeServices remember-me true on yes
+onLoginSuccess 将token持久化和添加到cookie cookie分域名 不要点注销
+安全：将token持久化到数据库当中
+
+security自带动态标签 导入动态标签taglib
+
+授权管理
+从安全性考虑放到业务层
+
+springSecurity不是基于一些filter来实现的嘛，但是@ControllerAdvice只能拦截到控制器的异常，filter中的异常时拦截不到的，
+所以还是建议用springSecurity内部的异常处理的机制，springSecurity会抛出两大类异常，
+一个是AuthenticationException（认证的异常）,一个是AccessDeniedException（权限不足的异常），处理的方法时写两个类，
+一个继承AccessDeniedHandler接口，一个继承AuthenticationEntryPoint接口，
+然后在springSecurity的配置类configure(HttpSecurity httpSecurity)中配置刚刚写的这两个类，httpSecurity.exceptionHandling().accessDeniedHandler({实现了AccessDeniedHandler接口的类}).authenticationEntryPoint({实现了AuthenticationEntryPoint接口的类})
+
+之前在spring-security.xml配置文件中配置登录失败时跳转的就是这个界面，因为UP主没有给失败跳转的界面放行（被拦截了）所以登录失败也一直会跳转到登录界面，
+而登录成功后出现登录失败界面原因是：因为在SpringSecurity中认证成功会默认跳转到之前访问的界面（登录失败界面），
+所以在spring-security.xml配置文件中配置的 认证成功默认跳转的界面，在这次操作中就不会生效（生效的是跳转到之前访问界面）
+
+分布式jsp用不了 分布式需要将重写的方法JsonIgnore
+在windows中拷贝 比idea拷贝快
+springSecurity默认密文
+将webapp变为web 1、<packaging>war
+
+分布式认证 SSO单点登录 每台服务器都有自己的session不能作为单点登录的技术方案
+环节：1、认证得到令牌 2、校验
+JWT：JSON web token 头部(规范) 载荷(信息) 签名(头部+载荷)
+非对称加密RSA 手里持有公钥加密的东西只能被私钥解开 但是别的服务只有公钥无法解开  -- 加密私钥 解密公钥
+重写attemptAuthentication、successfulAuthentication认证成功返回token -- （用户认证）
+重写BasicAuthenticationFilter (身份校验)
+异步请求不需要类图解析器
+
+资源服务只能公钥
+
+oauth2.0 4种模式
+先得授权码 再得token
+简化：直接得token直接暴露到浏览器
+密码模式：将账户密码给A系统
+客户端模式：用户不知道有B系统的存在 是A系统需要B系统 与用户无关
+
+OAuth2表字段
+    client_id A系统的用户名
+    resource_ids A系统可以访问的资源列表
+    client_secret 密码
+    scope 对资源文件的权限
+    authorized_grant-types 授权方式+是否refreshToken
+    web_server_redirect_uri 回调地址（授权码模式）
+    authorities A操作B的角色
+    access_token_validity token有效时间
+    trusted/autoapprove 是否信任(授权码模式) 是否询问用户是否同意
+OAuth2必须是分布式 与springCloud整合
+服务端认证 资源端资源
+springCloud前提是SpringBoot
+在父工程指定map结构 版本号
+
+资源端
+    @EnableResourceServer 需要继承ResourceServerConfigurerAdapter重写方法
+        1、设置资源id 以及 持久化方式 2、设置资源权限 跨域中会出现预检请求
+    校验：加入校验用户所需对象 token是OAuth2自己生成 只需要提供对等资源即可
+服务端
+    @EnableWebSecurity 继承WebSecurityConfigurerAdapter
+        SpringSecurity的认证方式 可以单点
+    @EnableAuthorizationServer 继承。。
+        OAuth2的认证方式
+    两者独立平行
+
+url地址#表示hash
+
+
+
+
+
+
+
+
+
+
+
+
+
+
